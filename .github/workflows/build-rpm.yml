@@ -1,0 +1,44 @@
+name: Build RPM
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch: # allows manual run
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install RPM build tools
+        run: |
+          sudo apt update
+          sudo apt install -y rpm build-essential xz-utils
+
+      - name: Setup RPM build tree
+        run: |
+          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+
+      - name: Download lsfg-vk tarball
+        run: |
+          curl -L -o ~/rpmbuild/SOURCES/lsfg-vk-2.0.0-dev19-linux.tar.xz \
+            https://github.com/PancakeTAS/lsfg-vk/releases/download/v2.0.0-dev/lsfg-vk-2.0.0-dev19-linux.tar.xz
+
+      - name: Copy SPEC file
+        run: |
+          cp lsfg-vk.spec ~/rpmbuild/SPECS/
+
+      - name: Build RPM
+        run: |
+          rpmbuild -bb ~/rpmbuild/SPECS/lsfg-vk.spec \
+            --define "_topdir $HOME/rpmbuild"
+
+      - name: Upload RPM
+        uses: actions/upload-artifact@v3
+        with:
+          name: lsfg-vk-rpm
+          path: ~/rpmbuild/RPMS/x86_64/*.rpm
