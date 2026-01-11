@@ -1,44 +1,54 @@
-name: Build RPM
+name: Build lsfg-vk RPM
 
+# Trigger on pushes to main or when creating tags
 on:
   push:
+    branches:
+      - main
     tags:
       - '*'
-  workflow_dispatch: # allows manual run
+  workflow_dispatch:  # allows manual trigger
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      # Step 1: Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Step 2: Install RPM build tools
       - name: Install RPM build tools
         run: |
           sudo apt update
           sudo apt install -y rpm build-essential xz-utils
 
-      - name: Setup RPM build tree
+      # Step 3: Setup RPM build tree
+      - name: Setup RPM build directories
         run: |
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 
+      # Step 4: Download prebuilt lsfg-vk binary
       - name: Download lsfg-vk tarball
         run: |
           curl -L -o ~/rpmbuild/SOURCES/lsfg-vk-2.0.0-dev19-linux.tar.xz \
             https://github.com/PancakeTAS/lsfg-vk/releases/download/v2.0.0-dev/lsfg-vk-2.0.0-dev19-linux.tar.xz
 
+      # Step 5: Copy SPEC file into build tree
       - name: Copy SPEC file
         run: |
           cp lsfg-vk.spec ~/rpmbuild/SPECS/
 
+      # Step 6: Build the RPM
       - name: Build RPM
         run: |
           rpmbuild -bb ~/rpmbuild/SPECS/lsfg-vk.spec \
             --define "_topdir $HOME/rpmbuild"
 
-      - name: Upload RPM
-        uses: actions/upload-artifact@v3
+      # Step 7: Upload RPM as artifact
+      - name: Upload RPM artifact
+        uses: actions/upload-artifact@v4
         with:
           name: lsfg-vk-rpm
           path: ~/rpmbuild/RPMS/x86_64/*.rpm
